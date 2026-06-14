@@ -1,34 +1,20 @@
-<p align="center">
-  <img src="assets/banner_main.svg" alt="Unsupervised Anomaly Detection in Financial Transactions" width="100%"/>
-</p>
+## Unsupervised Anomaly Detection in Financial Transactions
 
-<p align="center">
-  <img src="https://img.shields.io/badge/ML-Isolation%20Forest-1D9E75?style=for-the-badge" alt="ML"/>
-  <img src="https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?style=for-the-badge&logo=node.js" alt="Node.js"/>
-  <img src="https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?style=for-the-badge&logo=react" alt="React"/>
-  <img src="https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql" alt="PostgreSQL"/>
-  <img src="https://img.shields.io/badge/Auth-JWT-black?style=for-the-badge" alt="JWT"/>
-</p>
+This is a **full‑stack data science project** that detects suspicious financial transactions using **Unsupervised Learning (Isolation Forest)**.
 
----
+- **Frontend**: React + Vite + Material UI  
+- **Backend**: Node.js + Express  
+- **Database**: PostgreSQL  
+- **ML**: `ml-isolation-forest` (JavaScript implementation of Isolation Forest)  
 
-# 🔍 Unsupervised Anomaly Detection in Financial Transactions
-
-A **full-stack data science project** that detects suspicious financial transactions using **Unsupervised Learning (Isolation Forest)**. No labeled fraud data required — the model learns what "normal" looks like and flags deviations automatically.
+There are **two portals**:
+- **User Portal** – view own transactions, see anomaly flags and risk scores.
+- **Admin Portal** – monitor global stats, review flagged transactions, and manage users.
 
 ---
+![image alt[  ]
 
-## 📐 Architecture
-
-<p align="center">
-  <img src="assets/architecture_diagram.svg" alt="Autoencoder Pipeline Architecture" width="100%"/>
-</p>
-
-The system uses **Isolation Forest** as the core anomaly detection algorithm, combined with a React frontend, Express REST API, and PostgreSQL database. Transactions are scored in real-time and classified into risk tiers.
-
----
-
-## 🗂️ Project Structure
+### 1. Project Structure
 
 ```text
 Batch-5/
@@ -76,83 +62,73 @@ Batch-5/
 
   db/
     schema.sql
-
-  assets/
-    banner_main.svg
-    architecture_diagram.svg
-    clustering_visualization.svg
 ```
 
 ---
 
-## ⚙️ Tech Stack & Design Choices
+### 2. Tech Stack & Design Choices
 
-| Layer | Technology | Reason |
-|---|---|---|
-| ML Model | Isolation Forest | No labels needed; robust to evolving fraud patterns |
-| Backend | Node.js + Express | Lightweight REST API with JWT auth |
-| Database | PostgreSQL | Reliable storage for transactions + anomaly scores |
-| Frontend | React + Vite + Material UI | Fast SPA with responsive dashboard UI |
-| Auth | JWT (Role-based) | Separate `user` and `admin` access levels |
-
----
-
-## 🔮 Anomaly Clustering — Latent Feature Space
-
-<p align="center">
-  <img src="assets/clustering_visualization.svg" alt="Transaction Clusters in 2D Feature Space" width="100%"/>
-</p>
-
-Transactions are projected into a 2D feature space. **Teal clusters** represent normal low-value transactions, **purple clusters** represent normal high-value transactions, and **red/amber points** are flagged anomalies isolated by the model.
+- **Unsupervised Learning**: Isolation Forest (no labels needed; good for evolving fraud patterns).
+- **Backend**:
+  - Express REST API.
+  - JWT authentication (login/register).
+  - Role‑based access (`user`, `admin`).
+  - Endpoints for transactions, anomaly scores, and admin dashboards.
+- **Database (PostgreSQL)**:
+  - `users` – auth + roles.
+  - `transactions` – financial transaction data + anomaly score + is_anomaly flag.
+- **Frontend**:
+  - React + React Router for SPA navigation.
+  - Material UI for a **modern, responsive, dashboard‑style UI**.
+  - Separate views for **User** and **Admin** portals.
 
 ---
-
-## 🛠️ Prerequisites
+![image alt[  ]
+### 3. Prerequisites
 
 - **Node.js** >= 18
 - **npm** or **yarn**
-- **PostgreSQL** running locally (or a remote instance you control)
+- **PostgreSQL** running locally (or remote instance you control)
 
 ---
 
-## 🗄️ Database Setup (PostgreSQL)
+### 4. Database Setup (PostgreSQL)
 
-**1. Create the database:**
+1. Create a database in PostgreSQL (for example):
 
 ```sql
 CREATE DATABASE anomaly_detection_db;
 ```
 
-**2. Run the schema script:**
+2. Open `db/schema.sql` and execute the full script in your PostgreSQL client (pgAdmin, psql, DBeaver, etc.).
 
-Open `db/schema.sql` and execute it in your PostgreSQL client (pgAdmin, psql, DBeaver, etc.).
+3. Note your DB connection values:
+   - `PG_HOST`
+   - `PG_PORT`
+   - `PG_USER`
+   - `PG_PASSWORD`
+   - `PG_DATABASE`
 
-**3. Note your connection values** — you'll need these for the `.env` file:
-
-| Variable | Example |
-|---|---|
-| `PG_HOST` | `localhost` |
-| `PG_PORT` | `5432` |
-| `PG_USER` | `postgres` |
-| `PG_PASSWORD` | `your_password` |
-| `PG_DATABASE` | `anomaly_detection_db` |
+You will place these in the backend `.env` file.
 
 ---
 
-## 🚀 Backend — Setup & Running
+### 5. Backend – Setup & Running
 
-**1. Install dependencies:**
+1. Go to the backend folder and install dependencies:
 
 ```bash
 cd backend
 npm install
 ```
 
-**2. Create your `.env` file:**
+2. Create a `.env` file in `backend/`:
 
 ```bash
 cp .env.example .env   # or create manually
 ```
+
+Fill it with your values:
 
 ```env
 PORT=4000
@@ -165,148 +141,136 @@ PG_PASSWORD=your_password
 PG_DATABASE=anomaly_detection_db
 ```
 
-**3. Generate synthetic dataset (≥ 15,000 rows):**
+3. Generate synthetic dataset (>= 15000 rows) and insert into DB:
 
 ```bash
 npm run generate:data
 ```
 
-This creates a synthetic CSV of financial transactions and inserts them into the `transactions` table.
+This will:
+- Create a synthetic CSV of financial transactions.
+- Insert them into the `transactions` table.
 
-**4. Train the Isolation Forest model:**
+4. Train Isolation Forest model:
 
 ```bash
 npm run train:model
 ```
 
-This reads transactions from the database, trains the model on numerical features, and saves it to `backend/src/ml/model.json`.
+This will:
+- Read transactions from the database.
+- Train an Isolation Forest model on numerical features.
+- Save the trained model to `backend/src/ml/model.json`.
 
-**5. Start the backend server:**
+![image alt[  ]
+5. Start the backend server:
 
 ```bash
 npm run dev
 ```
 
-API running at → `http://localhost:4000`
+The API will be running on `http://localhost:4000`.
 
 ---
 
-## 💻 Frontend — Setup & Running
+### 6. Frontend – Setup & Running
 
-**1. Install dependencies:**
+1. Go to the frontend folder and install dependencies:
 
 ```bash
 cd frontend
 npm install
 ```
 
-**2. Start the React dev server:**
+2. Start the React dev server:
 
 ```bash
 npm run dev
 ```
 
-App running at → `http://localhost:5173`  
-The frontend is pre-configured to call the backend at `http://localhost:4000`.
+By default, the app runs on `http://localhost:5173` (Vite default).  
+The frontend is configured to call the backend at `http://localhost:4000`.
 
 ---
 
-## 🧠 Isolation Forest Logic
+### 7. Main Features & Flow
 
-The model works in 4 steps:
+- **Authentication**
+  - **Register**: `/api/auth/register` – create a user (default role: `user`).
+  - **Login**: `/api/auth/login` – returns a JWT token.
+  - The frontend stores the token (e.g., in memory or localStorage) and sends it in the `Authorization: Bearer <token>` header.
 
-```
-1. Feature Selection
-   ├── amount
-   ├── time_of_day  (0–23)
-   └── transaction_frequency  (count in last 24h)
+- **User Portal**
+  - View own transaction history.
+  - Each transaction shows:
+    - Amount, timestamp, merchant, location, category.
+    - **Anomaly score** and an **Anomaly badge** (Normal / Suspicious / High Risk).
+  - Filter/sort by risk level, amount, date.
 
-2. Unsupervised Training
-   └── Isolation Forest learns the "normal" distribution — no labels needed
-
-3. Anomaly Scoring
-   ├── Score → 1.0   =  likely anomaly
-   └── Score → 0.0   =  likely normal
-
-4. Risk Classification
-   ├── score < 0.55            →  ✅ NORMAL
-   ├── 0.55 ≤ score ≤ 0.75   →  ⚠️ SUSPICIOUS
-   └── score > 0.75            →  🚨 HIGH_RISK
-```
-
-Scores and risk categories are stored back into the `transactions` table for display in both portals.
+- **Admin Portal**
+  - View global statistics cards:
+    - Total transactions
+    - Number of anomalies
+    - Percentage of anomalies
+    - Average amount of anomalous vs normal transactions
+  - View table of **flagged transactions** (is_anomaly = true).
+  - Search by user, date range, amount, and risk level.
 
 ---
 
-## 🌐 API Reference
+### 8. APIs (High‑Level)
 
-### Auth
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/auth/register` | Create a new user (default role: `user`) |
-| `POST` | `/api/auth/login` | Login and receive a JWT token |
+- **Auth**
+  - `POST /api/auth/register`
+  - `POST /api/auth/login`
 
-### User Transactions
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/transactions` | List the authenticated user's transactions |
-| `GET` | `/api/transactions/:id` | Details for a single transaction |
-| `POST` | `/api/transactions/simulate` | Submit a new transaction; returns anomaly score + flag |
+- **User Transactions**
+  - `GET /api/transactions` – list authenticated user’s transactions.
+  - `GET /api/transactions/:id` – details for a single transaction.
 
-### Admin
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/admin/overview` | Global stats (total txns, anomaly %, avg amounts) |
-| `GET` | `/api/admin/transactions` | Paginated transactions list with filters |
+- **Anomaly Detection**
+  - `POST /api/transactions/simulate` – send a new transaction payload; backend runs model and returns anomaly score + flag.
 
-> All protected routes require `Authorization: Bearer <token>` in the request header.
+- **Admin**
+  - `GET /api/admin/overview` – high‑level stats.
+  - `GET /api/admin/transactions` – paginated list of transactions (with filters).
 
 ---
 
-## 👤 User Portal
+### 9. Isolation Forest Logic (Conceptual)
 
-- View **own transaction history** with full details (amount, timestamp, merchant, location, category).
-- Each transaction shows its **anomaly score** and a color-coded **risk badge**:
-  - 🟢 **Normal** — routine transaction
-  - 🟡 **Suspicious** — elevated risk score
-  - 🔴 **High Risk** — likely fraudulent
-- Filter and sort by risk level, amount, or date.
+The backend uses **Isolation Forest** as follows:
 
----
+1. Select numerical features (for example):
+   - amount
+   - time_of_day (0–23)
+   - transaction_frequency (e.g., count in last 24h)
+2. Train Isolation Forest on these features using **unsupervised learning**.
+3. Compute **anomaly scores**:
+   - Score near **1.0** → likely anomaly.
+   - Score near **0.0** → likely normal.
+4. Use thresholds to convert scores into categories:
+   - `< 0.55` → `NORMAL`
+   - `0.55 – 0.75` → `SUSPICIOUS`
+   - `> 0.75` → `HIGH_RISK`
 
-## 🔐 Admin Portal
-
-- **Global statistics cards**: total transactions, anomaly count, anomaly percentage, average amount (normal vs anomalous).
-- **Flagged transactions table**: all transactions where `is_anomaly = true`.
-- **Search & filter** by user, date range, amount, and risk level.
-
----
-
-## 🎛️ What You Can Customize
-
-- **Feature engineering** — add more transaction features to improve model accuracy.
-- **Anomaly thresholds** — tune the `NORMAL / SUSPICIOUS / HIGH_RISK` cutoffs.
-- **UI theme** — customize colors, fonts, and layout via the Material UI theme.
-- **Admin tools** — add fraud confirmation, report exports, or audit logs.
+These scores and categories are stored back into the `transactions` table.
 
 ---
 
-## 🔭 Next Steps
+### 10. What You Can Customize
 
-- [ ] Advanced feature engineering (merchant category encoding, geo-velocity scoring)
-- [ ] Periodic background retraining jobs with latest transaction data
-- [ ] Email / SMS alerting for HIGH_RISK anomalies
-- [ ] Audit logs for admin actions
-- [ ] Model performance dashboard (precision, recall on labeled test cases)
-
----
-
-## 📄 License
-
-This project is open-source and available under the [MIT License](LICENSE).
+- Feature engineering for the model (additional transaction features).
+- Thresholds for anomaly categories.
+- UI theme, color palette, and layout (Material UI theme).
+- Extra admin tools (e.g., confirming fraud / not‑fraud, exporting reports).
 
 ---
 
-<p align="center">
-  Built with ❤️ using Unsupervised Machine Learning · Isolation Forest · React · Node.js · PostgreSQL
-</p>
+### 11. Next Steps
+
+- Implement more advanced feature engineering for better anomaly quality.
+- Add background retraining jobs (e.g., periodic retraining with latest data).
+- Add audit logs and alerting (email / SMS) for high‑risk anomalies.
+
+This README gives you everything needed to **run the full project** and to explain it as a **data science + full‑stack** solution based on **Unsupervised Learning (Isolation Forest)** for financial fraud detection.
