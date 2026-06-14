@@ -1,0 +1,28 @@
+{
+  "name": "financial-anomaly-backend",
+  "version": "1.0.0",
+  "description": "Node/Express backend for unsupervised anomaly detection in financial transactions using Isolation Forest.",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "db:schema": "node src/scripts/runSchema.js",
+    "generate:data": "node src/scripts/generateDataset.js",
+    "train:model": "node src/scripts/trainIsolationForest.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "ml-isolation-forest": "^0.1.0",
+    "node-cron": "^3.0.3",
+    "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
+
