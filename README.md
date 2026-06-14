@@ -12,7 +12,7 @@ There are **two portals**:
 - **Admin Portal** – monitor global stats, review flagged transactions, and manage users.
 
 ---
-![image alt[  ]
+![image alt[ https://github.com/neelamlikitha/Unsupervised-Learning-For-Anamoly-Detection-In-Financial-Transactions/blob/e25c75e7b92e8432fa48b770bb405c69b11cc53f/anomaly_detection_banner.png ]
 
 ### 1. Project Structure
 
