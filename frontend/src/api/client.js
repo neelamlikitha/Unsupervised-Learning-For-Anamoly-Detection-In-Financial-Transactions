@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:4000/api')
+  .replace(/\/+$/, '')
+  .replace(/(?:\/api)+$/i, '') + '/api';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+  baseURL: apiBaseUrl
 });
 
 api.interceptors.request.use((config) => {
@@ -51,7 +55,7 @@ api.interceptors.response.use(
     }
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/refresh`,
+        `${apiBaseUrl}/auth/refresh`,
         { refreshToken }
       );
       const newToken = data.token;

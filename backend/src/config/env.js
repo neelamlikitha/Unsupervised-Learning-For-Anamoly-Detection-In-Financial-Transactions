@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const env = {
-  port: process.env.PORT || 4000,
+  port: Number(process.env.PORT) || 4000,
   jwtSecret: process.env.JWT_SECRET || 'dev_secret_change_me',
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'dev_refresh_secret_change_me',
   jwtExpiry: process.env.JWT_EXPIRY || '15m',
