@@ -99,7 +99,7 @@ function OverviewView({ transactions, loading }) {
     return { total, anomalies, highRisk, totalAmount, avgScore };
   }, [transactions]);
 
-  const recent = transactions.slice(0, 5);
+  const recent = transactions.slice(0, 10);
 
   return (
     <Box>
@@ -386,6 +386,7 @@ function SimulateView({ onNewTransaction }) {
       });
       setResult(res.data.anomaly);
       onNewTransaction?.(res.data.transaction);
+      setForm({ amount: '', merchant: '', category: 'shopping', channel: 'online', city: 'Hyderabad' });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to simulate.');
     } finally { setLoading(false); }
