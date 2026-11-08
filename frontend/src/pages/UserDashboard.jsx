@@ -408,7 +408,7 @@ function SimulateView({ onNewTransaction }) {
         <Grid item xs={12} md={5}>
           <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(148,163,184,0.2)', background: 'rgba(15,23,42,0.9)' }}>
             <Typography variant="body2" sx={{ mb: 2.5, color: 'rgba(148,163,184,0.8)' }}>
-              Submit a hypothetical transaction — the Isolation Forest model will score it in real time.
+              Submit a hypothetical transaction — the active Isolation Forest model scores it, with configured business rules applied separately.
             </Typography>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack component="form" spacing={2} onSubmit={handleSubmit}>
@@ -448,8 +448,7 @@ function SimulateView({ onNewTransaction }) {
                     Insufficient history to score
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'rgba(148,163,184,0.8)' }}>
-                    This transaction was saved, but there is not enough transaction history to calculate a reliable anomaly score yet.
-                    Submit more transactions and try again.
+                    {result.explanation || 'This transaction was saved, but no active model is available to calculate an anomaly score.'}
                   </Typography>
                 </>
               ) : (
@@ -457,31 +456,41 @@ function SimulateView({ onNewTransaction }) {
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: resultColor }}>
                     Result: {result.level.replace('_', ' ')}
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, color: 'rgba(148,163,184,0.8)' }}>Anomaly Score</Typography>
-                  <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={result.score * 100}
-                        sx={{
-                          height: 10,
-                          borderRadius: 5,
-                          bgcolor: 'rgba(148,163,184,0.1)',
-                          '& .MuiLinearProgress-bar': { bgcolor: resultColor, borderRadius: 5 }
-                        }}
-                      />
-                    </Box>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: resultColor, minWidth: 60 }}>
-                      {(result.score * 100).toFixed(1)}%
-                    </Typography>
-                  </Stack>
+                  {Number.isFinite(result.score) ? (
+                    <>
+                      <Typography variant="body2" sx={{ mb: 1, color: 'rgba(148,163,184,0.8)' }}>Raw Isolation Forest score</Typography>
+                      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={result.score * 100}
+                            sx={{
+                              height: 10,
+                              borderRadius: 5,
+                              bgcolor: 'rgba(148,163,184,0.1)',
+                              '& .MuiLinearProgress-bar': { bgcolor: resultColor, borderRadius: 5 }
+                            }}
+                          />
+                        </Box>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: resultColor, minWidth: 60 }}>
+                          {(result.score * 100).toFixed(1)}%
+                        </Typography>
+                      </Stack>
+                    </>
+                  ) : (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      No ML score is available; this classification came from a configured business rule.
+                    </Alert>
+                  )}
                   <Divider sx={{ borderColor: 'rgba(148,163,184,0.15)', my: 2 }} />
                   <Stack spacing={1}>
                     {[
-                      ['Score (raw)',   result.score.toFixed(4)],
+                      ...(Number.isFinite(result.score) ? [['Score (raw)', result.score.toFixed(4)]] : []),
                       ['Risk level',   result.level],
+                      ...(result.source ? [['Classification source', result.source]] : []),
+                      ...(result.explanation ? [['Reason', result.explanation]] : []),
                       ['Interpretation',
-                        result.level === 'HIGH_RISK'   ? 'This transaction looks highly anomalous — very different from your spending pattern.' :
+                        result.level === 'HIGH_RISK'   ? 'This transaction meets the displayed high-risk classification.' :
                         result.level === 'SUSPICIOUS'  ? 'This transaction is slightly unusual — keep an eye on it.' :
                                                         'This transaction fits your normal spending pattern.']
                     ].map(([label, val]) => (
@@ -509,6 +518,9 @@ function SimulateView({ onNewTransaction }) {
             <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'rgba(148,163,184,0.8)', fontWeight: 600 }}>
               Try these examples
             </Typography>
+            <Typography variant="caption" sx={{ display: 'block', mb: 1.5, color: 'rgba(148,163,184,0.6)' }}>
+              Expected labels are examples only. The backend returns the actual classification after scoring.
+            </Typography>
             <Stack spacing={1}>
               {[
                 { label: 'Normal grocery', amount: 1200, merchant: 'BigBasket', category: 'groceries', channel: 'online', city: 'Hyderabad', expect: 'NORMAL' },
@@ -523,7 +535,7 @@ function SimulateView({ onNewTransaction }) {
                     </Typography>
                   </Box>
                   <Chip
-                    label={ex.expect}
+                    label={`Expected: ${ex.expect}`}
                     size="small"
                     color={ex.expect === 'HIGH_RISK' ? 'error' : ex.expect === 'SUSPICIOUS' ? 'warning' : 'success'}
                     sx={{ fontSize: '0.65rem' }}

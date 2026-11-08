@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "test": "node --test",
     "db:schema": "node src/scripts/runSchema.js",
     "generate:data": "node src/scripts/generateDataset.js",
     "train:model": "node src/scripts/trainIsolationForest.js"
@@ -25,4 +26,3 @@
     "nodemon": "^3.1.0"
   }
 }
-

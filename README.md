@@ -136,7 +136,14 @@ PG_PORT=5432
 PG_USER=postgres
 PG_PASSWORD=your_password
 PG_DATABASE=anomaly_detection_db
+
+ANOMALY_THRESHOLD_SUSPICIOUS=0.55
+ANOMALY_THRESHOLD_HIGH_RISK=0.75
+ANOMALY_HIGH_VALUE_ELECTRONICS_MIN_AMOUNT=50000
+RETRAIN_CRON=0 2 * * *
 ```
+
+`ANOMALY_HIGH_VALUE_ELECTRONICS_MIN_AMOUNT` is in INR; electronics transactions at or above this amount are classified as `HIGH_RISK`.
 
 3. Generate synthetic dataset (>= 15000 rows) and insert into DB:
 
@@ -233,24 +240,21 @@ The frontend is configured to call the backend at `http://localhost:4000`.
 
 ---
 
-### 9. Isolation Forest Logic (Conceptual)
+### 9. Hybrid Anomaly Scoring
 
-The backend uses **Isolation Forest** as follows:
+The backend keeps **Isolation Forest** as the primary unsupervised model:
 
-1. Select numerical features (for example):
-   - amount
-   - time_of_day (0–23)
-   - transaction_frequency (e.g., count in last 24h)
-2. Train Isolation Forest on these features using **unsupervised learning**.
-3. Compute **anomaly scores**:
-   - Score near **1.0** → likely anomaly.
-   - Score near **0.0** → likely normal.
-4. Use thresholds to convert scores into categories:
-   - `< 0.55` → `NORMAL`
-   - `0.55 – 0.75` → `SUSPICIOUS`
-   - `> 0.75` → `HIGH_RISK`
+1. The backend trains an in-memory model at startup and replaces it on the configured `RETRAIN_CRON` schedule; each simulation request scores against the active model without retraining it.
+2. The model uses amount, time of day, recent 24-hour amount/count, and category. Time and recent-activity features can differ between otherwise identical form entries.
+3. The raw Isolation Forest score is returned separately from the final risk classification. Scores `<= 0.55` are `NORMAL`, scores `> 0.55` and `<= 0.75` are `SUSPICIOUS`, and scores `> 0.75` are `HIGH_RISK` by default. These thresholds can be configured with `ANOMALY_THRESHOLD_SUSPICIOUS` and `ANOMALY_THRESHOLD_HIGH_RISK`.
+4. As a documented business rule, a category of `electronics` (case-insensitive) with an amount greater than or equal to `ANOMALY_HIGH_VALUE_ELECTRONICS_MIN_AMOUNT` is classified as `HIGH_RISK`. The default threshold is INR 50,000. The response identifies whether the classification came from ML, the business rule, or both; the rule does not alter the raw ML score.
+5. Transactions outside that business rule use the active model. A model requires at least 10 training samples; before one has been successfully activated, normal transactions remain `INSUFFICIENT_HISTORY`, never silently `NORMAL`. A matching electronics rule can still classify a transaction without an ML score.
 
-These scores and categories are stored back into the `transactions` table.
+The scheduled job builds and validates a candidate before publishing it, and retains the prior model if training or score persistence fails. The installed `ml-isolation-forest` package does not expose a seed or model serialization API: predictions are repeatable for identical feature vectors against one active model version, but retraining (including after a restart) can produce a different model and score.
+
+The “Try these examples” labels are expected outcomes for guidance only; the backend calculates and returns the actual classification.
+
+Run backend automated tests with `cd backend && npm test`.
 
 ---
 

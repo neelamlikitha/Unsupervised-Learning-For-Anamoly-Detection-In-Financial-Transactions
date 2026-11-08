@@ -2,6 +2,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const highValueElectronicsMinAmountConfig = process.env.ANOMALY_HIGH_VALUE_ELECTRONICS_MIN_AMOUNT;
+const highValueElectronicsMinAmount = highValueElectronicsMinAmountConfig == null
+  ? 50000
+  : Number(highValueElectronicsMinAmountConfig);
+if (highValueElectronicsMinAmountConfig?.trim() === ''
+  || !Number.isFinite(highValueElectronicsMinAmount)
+  || highValueElectronicsMinAmount < 0) {
+  throw new Error('ANOMALY_HIGH_VALUE_ELECTRONICS_MIN_AMOUNT must be a non-negative number.');
+}
+
 export const env = {
   port: Number(process.env.PORT) || 4000,
   jwtSecret: process.env.JWT_SECRET || 'dev_secret_change_me',
@@ -21,7 +31,8 @@ export const env = {
   },
   anomaly: {
     thresholdSuspicious: Number(process.env.ANOMALY_THRESHOLD_SUSPICIOUS ?? 0.55),
-    thresholdHighRisk: Number(process.env.ANOMALY_THRESHOLD_HIGH_RISK ?? 0.75)
+    thresholdHighRisk: Number(process.env.ANOMALY_THRESHOLD_HIGH_RISK ?? 0.75),
+    highValueElectronicsMinAmount
   },
   alert: {
     webhookUrl: process.env.ALERT_WEBHOOK_URL || '',
@@ -33,4 +44,3 @@ export const env = {
   },
   retrainCron: process.env.RETRAIN_CRON || '0 2 * * *' // 2 AM daily
 };
-

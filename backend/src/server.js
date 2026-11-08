@@ -40,8 +40,31 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Not found' });
 });
 
-app.listen(env.port, () => {
-  console.log(`Backend server listening on port ${env.port}`);
-  startScheduledRetrain();
-});
+async function startServer() {
+  const initialTraining = startScheduledRetrain();
+  let startupTimeout;
+  const startupDeadline = new Promise((resolve) => {
+    startupTimeout = setTimeout(resolve, 10_000);
+  });
 
+  try {
+    const outcome = await Promise.race([
+      initialTraining.then(() => 'completed'),
+      startupDeadline.then(() => 'timed-out')
+    ]);
+    if (outcome === 'timed-out') {
+      console.warn('[Startup] Initial model training did not finish within 10 seconds; serving requests without waiting.');
+    }
+  } finally {
+    clearTimeout(startupTimeout);
+  }
+
+  app.listen(env.port, () => {
+    console.log(`Backend server listening on port ${env.port}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error('[Startup] Failed to start server:', err);
+  process.exitCode = 1;
+});

@@ -48,89 +48,102 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Simulate a new transaction, score it with Isolation Forest, store and return result
-router.post('/simulate', async (req, res) => {
-  try {
-    const {
-      amount,
-      merchant,
-      category,
-      channel,
-      city,
-      country = 'India'
-    } = req.body;
+export function createSimulationHandler({
+  queryTransactions = query,
+  saveTransaction = insertTransaction,
+  scoreTransaction = scoreNewTransaction,
+  sendAlert = sendHighRiskAlert
+} = {}) {
+  return async (req, res) => {
+    try {
+      const {
+        amount,
+        merchant,
+        category,
+        channel,
+        city,
+        country = 'India'
+      } = req.body;
 
-    if (!amount || !merchant || !category || !channel) {
-      return res.status(400).json({ message: 'amount, merchant, category and channel are required' });
-    }
-
-    const transactedAt = new Date();
-
-    const twentyFourHoursAgo = new Date(transactedAt.getTime() - 24 * 60 * 60 * 1000);
-    const recentRes = await query(
-      `SELECT amount, transacted_at
-       FROM transactions
-       WHERE user_id = $1
-         AND transacted_at > $2
-         AND transacted_at <= $3`,
-      [req.user.id, twentyFourHoursAgo, transactedAt]
-    );
-
-    const recent = recentRes.rows;
-    const amountLast24h = recent.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-    const txnCountLast24h = recent.length;
-
-    const timeOfDay = transactedAt.getHours();
-    const categoryIndex = getCategoryIndex(category || 'other');
-    const features = [
-      Number(amount) || 0,
-      timeOfDay,
-      amountLast24h,
-      txnCountLast24h,
-      categoryIndex
-    ];
-
-    const { score, level } = await scoreNewTransaction(features);
-    const isScored = Number.isFinite(score)
-      && score >= 0
-      && score <= 1
-      && ['NORMAL', 'SUSPICIOUS', 'HIGH_RISK'].includes(level);
-    const anomalyLevel = isScored ? level : 'INSUFFICIENT_HISTORY';
-
-    const saved = await insertTransaction({
-      userId: req.user.id,
-      amount,
-      currency: 'INR',
-      merchant,
-      category,
-      channel,
-      city,
-      country,
-      transactedAt,
-      timeOfDay: transactedAt.getHours(),
-      amountLast24h,
-      txnCountLast24h,
-      anomalyScore: isScored ? score : null,
-      isAnomaly: isScored ? anomalyLevel !== 'NORMAL' : null,
-      anomalyLevel
-    });
-
-    if (anomalyLevel === 'HIGH_RISK') {
-      sendHighRiskAlert(saved, req.user.email).catch(() => {});
-    }
-
-    return res.status(201).json({
-      transaction: saved,
-      anomaly: {
-        score: isScored ? score : null,
-        level: anomalyLevel,
-        status: isScored ? 'SCORED' : 'INSUFFICIENT_HISTORY'
+      if (!amount || !merchant || !category || !channel) {
+        return res.status(400).json({ message: 'amount, merchant, category and channel are required' });
       }
-    });
-  } catch (err) {
-    console.error('Simulate transaction error', err);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
+
+      const transactedAt = new Date();
+      const twentyFourHoursAgo = new Date(transactedAt.getTime() - 24 * 60 * 60 * 1000);
+      const recentRes = await queryTransactions(
+        `SELECT amount, transacted_at
+         FROM transactions
+         WHERE user_id = $1
+           AND transacted_at > $2
+           AND transacted_at <= $3`,
+        [req.user.id, twentyFourHoursAgo, transactedAt]
+      );
+
+      const recent = recentRes.rows;
+      const amountLast24h = recent.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+      const txnCountLast24h = recent.length;
+
+      const timeOfDay = transactedAt.getHours();
+      const categoryIndex = getCategoryIndex(category);
+      const features = [
+        Number(amount) || 0,
+        timeOfDay,
+        amountLast24h,
+        txnCountLast24h,
+        categoryIndex
+      ];
+
+      const classification = await scoreTransaction(features, { category, amount: Number(amount) });
+      const { score, level, status, source, explanation, modelVersion } = classification;
+      const isScored = Number.isFinite(score)
+        && score >= 0
+        && score <= 1
+        && ['NORMAL', 'SUSPICIOUS', 'HIGH_RISK'].includes(classification.mlLevel);
+      const isRuleClassified = status === 'BUSINESS_RULE' && level === 'HIGH_RISK';
+      const isClassified = isScored || isRuleClassified;
+      const anomalyLevel = isClassified ? level : 'INSUFFICIENT_HISTORY';
+
+      const saved = await saveTransaction({
+        userId: req.user.id,
+        amount,
+        currency: 'INR',
+        merchant,
+        category,
+        channel,
+        city,
+        country,
+        transactedAt,
+        timeOfDay,
+        amountLast24h,
+        txnCountLast24h,
+        anomalyScore: isScored ? score : null,
+        isAnomaly: isClassified ? anomalyLevel !== 'NORMAL' : null,
+        anomalyLevel
+      });
+
+      if (anomalyLevel === 'HIGH_RISK') {
+        sendAlert(saved, req.user.email).catch(() => {});
+      }
+
+      return res.status(201).json({
+        transaction: saved,
+        anomaly: {
+          score: isScored ? score : null,
+          level: anomalyLevel,
+          status: isClassified ? status : 'INSUFFICIENT_HISTORY',
+          source,
+          explanation,
+          modelVersion
+        }
+      });
+    } catch (err) {
+      console.error('Simulate transaction error', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+}
+
+router.post('/simulate', createSimulationHandler());
 
 export default router;
