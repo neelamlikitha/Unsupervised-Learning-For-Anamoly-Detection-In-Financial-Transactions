@@ -2,6 +2,8 @@ import { IsolationForest } from 'ml-isolation-forest';
 import { query } from '../config/database.js';
 import { env } from '../config/env.js';
 
+const MIN_TRAINING_SAMPLES = 10;
+
 const CATEGORY_INDEX = Object.fromEntries(
   ['shopping', 'food', 'travel', 'entertainment', 'groceries', 'utilities', 'electronics', 'other'].map((c, i) => [c, i])
 );
@@ -12,7 +14,8 @@ export function getCategoryIndex(cat) {
 // Feature vector: amount, time_of_day, amount_last_24h, txn_count_last_24h, category_index
 function buildFeatureVector(row) {
   const amount = Number(row.amount) || 0;
-  const timeOfDay = Number(row.time_of_day) ?? 12;
+  const parsedTimeOfDay = Number(row.time_of_day);
+  const timeOfDay = Number.isFinite(parsedTimeOfDay) ? parsedTimeOfDay : 12;
   const amountLast24h = Number(row.amount_last_24h) || 0;
   const txnCountLast24h = Number(row.txn_count_last_24h) || 0;
   const categoryIndex = row.category != null ? getCategoryIndex(row.category) : 0;
@@ -20,7 +23,7 @@ function buildFeatureVector(row) {
 }
 
 export function scoreToLevel(score) {
-  if (score === null || score === undefined) return null;
+  if (!Number.isFinite(score) || score < 0 || score > 1) return null;
   const { thresholdHighRisk, thresholdSuspicious } = env.anomaly;
   if (score > thresholdHighRisk) return 'HIGH_RISK';
   if (score > thresholdSuspicious) return 'SUSPICIOUS';
@@ -35,8 +38,8 @@ export async function trainIsolationForestOnAllTransactions() {
   );
 
   const rows = res.rows;
-  if (!rows.length) {
-    throw new Error('No transactions available for training.');
+  if (rows.length < MIN_TRAINING_SAMPLES) {
+    return [];
   }
 
   const X = rows.map(buildFeatureVector);
@@ -45,6 +48,12 @@ export async function trainIsolationForestOnAllTransactions() {
   forest.train(X);
 
   const scores = forest.predict(X);
+  if (
+    scores.length !== rows.length ||
+    !scores.every((score) => Number.isFinite(score) && score >= 0 && score <= 1)
+  ) {
+    return [];
+  }
 
   return rows.map((row, idx) => {
     const score = Number(scores[idx]);
@@ -64,21 +73,31 @@ export async function scoreNewTransaction(features) {
   );
 
   const rows = res.rows;
-  if (!rows.length) {
-    throw new Error('No transactions available for training.');
+  if (rows.length < MIN_TRAINING_SAMPLES) {
+    return {
+      score: null,
+      level: 'INSUFFICIENT_HISTORY'
+    };
+  }
+
+  if (!Array.isArray(features) || features.length !== 5 || !features.every(Number.isFinite)) {
+    throw new TypeError('Transaction features must contain five finite numbers.');
   }
 
   const X = rows.map(buildFeatureVector);
   const forest = new IsolationForest();
   forest.train(X);
-  const newVector = Array.isArray(features) && features.length >= 5
-    ? features
-    : [...features, 0];
-  const allScores = forest.predict([...X, newVector]);
+  const allScores = forest.predict([...X, features]);
   const score = Number(allScores[allScores.length - 1]);
+  if (!Number.isFinite(score) || score < 0 || score > 1) {
+    return {
+      score: null,
+      level: 'INSUFFICIENT_HISTORY'
+    };
+  }
+
   return {
     score,
     level: scoreToLevel(score)
   };
 }
-

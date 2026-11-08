@@ -391,7 +391,14 @@ function SimulateView({ onNewTransaction }) {
     } finally { setLoading(false); }
   };
 
-  const resultColor = result?.level === 'HIGH_RISK' ? '#ef4444' : result?.level === 'SUSPICIOUS' ? '#f59e0b' : '#22c55e';
+  const hasInsufficientHistory = result?.status === 'INSUFFICIENT_HISTORY' || result?.level === 'INSUFFICIENT_HISTORY';
+  const resultColor = hasInsufficientHistory
+    ? '#60a5fa'
+    : result?.level === 'HIGH_RISK'
+      ? '#ef4444'
+      : result?.level === 'SUSPICIOUS'
+        ? '#f59e0b'
+        : '#22c55e';
 
   return (
     <Box>
@@ -434,43 +441,57 @@ function SimulateView({ onNewTransaction }) {
         <Grid item xs={12} md={7}>
           {result ? (
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: `1px solid ${resultColor}55`, background: 'rgba(15,23,42,0.9)' }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: resultColor }}>
-                Result: {result.level.replace('_', ' ')}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, color: 'rgba(148,163,184,0.8)' }}>Anomaly Score</Typography>
-              <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                <Box sx={{ flex: 1 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={result.score * 100}
-                    sx={{
-                      height: 10,
-                      borderRadius: 5,
-                      bgcolor: 'rgba(148,163,184,0.1)',
-                      '& .MuiLinearProgress-bar': { bgcolor: resultColor, borderRadius: 5 }
-                    }}
-                  />
-                </Box>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: resultColor, minWidth: 60 }}>
-                  {(result.score * 100).toFixed(1)}%
-                </Typography>
-              </Stack>
-              <Divider sx={{ borderColor: 'rgba(148,163,184,0.15)', my: 2 }} />
-              <Stack spacing={1}>
-                {[
-                  ['Score (raw)',   result.score.toFixed(4)],
-                  ['Risk level',   result.level],
-                  ['Interpretation',
-                    result.level === 'HIGH_RISK'   ? 'This transaction looks highly anomalous — very different from your spending pattern.' :
-                    result.level === 'SUSPICIOUS'  ? 'This transaction is slightly unusual — keep an eye on it.' :
-                                                    'This transaction fits your normal spending pattern.']
-                ].map(([label, val]) => (
-                  <Stack key={label} direction="row" justifyContent="space-between">
-                    <Typography variant="body2" sx={{ color: 'rgba(148,163,184,0.7)' }}>{label}</Typography>
-                    <Typography variant="body2" sx={{ color: '#e5e7eb', fontWeight: 500, maxWidth: '60%', textAlign: 'right' }}>{val}</Typography>
+              {hasInsufficientHistory ? (
+                <>
+                  <Typography variant="h6" sx={{ mb: 1, fontWeight: 700, color: resultColor }}>
+                    Insufficient history to score
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(148,163,184,0.8)' }}>
+                    This transaction was saved, but there is not enough transaction history to calculate a reliable anomaly score yet.
+                    Submit more transactions and try again.
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: resultColor }}>
+                    Result: {result.level.replace('_', ' ')}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1, color: 'rgba(148,163,184,0.8)' }}>Anomaly Score</Typography>
+                  <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                    <Box sx={{ flex: 1 }}>
+                      <LinearProgress
+                        variant="determinate"
+                        value={result.score * 100}
+                        sx={{
+                          height: 10,
+                          borderRadius: 5,
+                          bgcolor: 'rgba(148,163,184,0.1)',
+                          '& .MuiLinearProgress-bar': { bgcolor: resultColor, borderRadius: 5 }
+                        }}
+                      />
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: resultColor, minWidth: 60 }}>
+                      {(result.score * 100).toFixed(1)}%
+                    </Typography>
                   </Stack>
-                ))}
-              </Stack>
+                  <Divider sx={{ borderColor: 'rgba(148,163,184,0.15)', my: 2 }} />
+                  <Stack spacing={1}>
+                    {[
+                      ['Score (raw)',   result.score.toFixed(4)],
+                      ['Risk level',   result.level],
+                      ['Interpretation',
+                        result.level === 'HIGH_RISK'   ? 'This transaction looks highly anomalous — very different from your spending pattern.' :
+                        result.level === 'SUSPICIOUS'  ? 'This transaction is slightly unusual — keep an eye on it.' :
+                                                        'This transaction fits your normal spending pattern.']
+                    ].map(([label, val]) => (
+                      <Stack key={label} direction="row" justifyContent="space-between">
+                        <Typography variant="body2" sx={{ color: 'rgba(148,163,184,0.7)' }}>{label}</Typography>
+                        <Typography variant="body2" sx={{ color: '#e5e7eb', fontWeight: 500, maxWidth: '60%', textAlign: 'right' }}>{val}</Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </>
+              )}
             </Paper>
           ) : (
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(148,163,184,0.15)', background: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>

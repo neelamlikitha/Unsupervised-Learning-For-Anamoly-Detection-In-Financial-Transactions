@@ -91,6 +91,11 @@ router.post('/simulate', async (req, res) => {
     ];
 
     const { score, level } = await scoreNewTransaction(features);
+    const isScored = Number.isFinite(score)
+      && score >= 0
+      && score <= 1
+      && ['NORMAL', 'SUSPICIOUS', 'HIGH_RISK'].includes(level);
+    const anomalyLevel = isScored ? level : 'INSUFFICIENT_HISTORY';
 
     const saved = await insertTransaction({
       userId: req.user.id,
@@ -105,20 +110,21 @@ router.post('/simulate', async (req, res) => {
       timeOfDay: transactedAt.getHours(),
       amountLast24h,
       txnCountLast24h,
-      anomalyScore: score,
-      isAnomaly: level !== 'NORMAL',
-      anomalyLevel: level
+      anomalyScore: isScored ? score : null,
+      isAnomaly: isScored ? anomalyLevel !== 'NORMAL' : null,
+      anomalyLevel
     });
 
-    if (level === 'HIGH_RISK') {
+    if (anomalyLevel === 'HIGH_RISK') {
       sendHighRiskAlert(saved, req.user.email).catch(() => {});
     }
 
     return res.status(201).json({
       transaction: saved,
       anomaly: {
-        score,
-        level
+        score: isScored ? score : null,
+        level: anomalyLevel,
+        status: isScored ? 'SCORED' : 'INSUFFICIENT_HISTORY'
       }
     });
   } catch (err) {
@@ -128,4 +134,3 @@ router.post('/simulate', async (req, res) => {
 });
 
 export default router;
-
