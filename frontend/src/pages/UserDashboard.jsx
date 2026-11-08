@@ -487,8 +487,6 @@ function SimulateView({ onNewTransaction }) {
                     {[
                       ...(Number.isFinite(result.score) ? [['Score (raw)', result.score.toFixed(4)]] : []),
                       ['Risk level',   result.level],
-                      ...(result.source ? [['Classification source', result.source]] : []),
-                      ...(result.explanation ? [['Reason', result.explanation]] : []),
                       ['Interpretation',
                         result.level === 'HIGH_RISK'   ? 'This transaction meets the displayed high-risk classification.' :
                         result.level === 'SUSPICIOUS'  ? 'This transaction is slightly unusual — keep an eye on it.' :
@@ -519,7 +517,7 @@ function SimulateView({ onNewTransaction }) {
               Try these examples
             </Typography>
             <Typography variant="caption" sx={{ display: 'block', mb: 1.5, color: 'rgba(148,163,184,0.6)' }}>
-              Expected labels are examples only. The backend returns the actual classification after scoring.
+              These are example transactions. The backend returns the actual classification after scoring.
             </Typography>
             <Stack spacing={1}>
               {[
@@ -535,7 +533,7 @@ function SimulateView({ onNewTransaction }) {
                     </Typography>
                   </Box>
                   <Chip
-                    label={`Expected: ${ex.expect}`}
+                    label={ex.expect}
                     size="small"
                     color={ex.expect === 'HIGH_RISK' ? 'error' : ex.expect === 'SUSPICIOUS' ? 'warning' : 'success'}
                     sx={{ fontSize: '0.65rem' }}
